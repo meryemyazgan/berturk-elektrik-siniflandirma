@@ -1,0 +1,2 @@
+# berturk-elektrik-siniflandirma
+
