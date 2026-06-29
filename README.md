@@ -1,46 +1,60 @@
 # BERTürk Tabanlı Türkçe Elektrik Ürünlerinin Otomatik Sınıflandırılması
 
-Türkçe e-ticaret platformlarından toplanan elektrik/elektroteknik ürün adlarının BERTürk (`dbmdz/bert-base-turkish-cased`) fine-tuning yöntemiyle otomatik kategorize edilmesi üzerine TÜBİTAK 2209-A kapsamında desteklenen bitirme çalışması.
+Türkçe e-ticaret platformlarından toplanan elektrik/elektroteknik ürün adlarının BERTürk (`dbmdz/bert-base-turkish-cased`) fine-tuning yöntemiyle otomatik kategorize edilmesi üzerine yürütülen bitirme çalışması.
 
 Bu repo, ilgili akademik makalenin **veri ve kod erişilebilirliği** beyanı kapsamında paylaşılmaktadır.
 
 ## Proje Özeti
 
-- **Veri**: 4 e-ticaret platformundan (Trendyol, Amazon, elektrikmarket.com.tr, e-dundar.com) web scraping ile toplanan 11.160 ürün, 20 kategori
+- **Veri**: 4 e-ticaret platformundan web scraping ile toplanan 11.160 ürün, 20 kategori
 - **Model**: `dbmdz/bert-base-turkish-cased` fine-tuning, %92,5 test doğruluğu
 - **Servis**: FastAPI REST API ile gerçek zamanlı kategori tahmini
 
 ## Eğitilmiş Model
 
-Eğitilmiş model dosyaları (`model.safetensors`, tokenizer, config) boyut nedeniyle bu repoda **değil**, Hugging Face Hub'da barındırılmaktadır:
+Eğitilmiş model dosyaları Hugging Face Hub'da barındırılmaktadır:
 
-👉 **[HUGGINGFACE-LINKI-BURAYA-GELECEK]**
+👉 [https://huggingface.co/meryyzgn/berturk-elektrik-siniflandirma](https://huggingface.co/meryyzgn/berturk-elektrik-siniflandirma)
+
+Modeli kullanmak için:
 
 ```python
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
-tokenizer = AutoTokenizer.from_pretrained("KULLANICI_ADI/MODEL_ADI")
-model = AutoModelForSequenceClassification.from_pretrained("KULLANICI_ADI/MODEL_ADI")
+import torch, json, numpy as np
+
+tokenizer = AutoTokenizer.from_pretrained("meryyzgn/berturk-elektrik-siniflandirma")
+model = AutoModelForSequenceClassification.from_pretrained("meryyzgn/berturk-elektrik-siniflandirma")
+model.eval()
+
+urun_adi = "Schneider 40A Kontaktör"
+inputs = tokenizer(urun_adi, return_tensors="pt", truncation=True, padding=True, max_length=64)
+with torch.no_grad():
+    outputs = model(**inputs)
+    tahmin_idx = int(np.argmax(outputs.logits.numpy()))
+    guven = float(torch.softmax(outputs.logits, dim=1).max().item()) * 100
+print(f"Kategori indeksi: {tahmin_idx}, Güven: %{guven:.1f}")
 ```
+
+Kategori isimlerine ulaşmak için `kategori_index.json` dosyasını kullanın.
 
 ## Dosyalar
 
 | Dosya | Açıklama |
 |---|---|
 | `scraper.py` | elektrikmarket.com.tr veri toplama betiği |
-| `scraper2.py` | e-dundar.com veri toplama betiği (site taksonomisi tabanlı etiketleme) |
-| `scraper3.py` | trendyol.com veri toplama betiği (arama sorgusu tabanlı etiketleme) |
-| `scraper4.py` | amazon.com.tr veri toplama betiği (arama sorgusu tabanlı etiketleme) |
+| `scraper2.py` | e-dundar.com veri toplama betiği (site taksonomisi tabanlı) |
+| `scraper3.py` | trendyol.com veri toplama betiği (arama sorgusu tabanlı) |
+| `scraper4.py` | amazon.com.tr veri toplama betiği (arama sorgusu tabanlı) |
 | `01_ham_veri_okuma.py` | Ham veri (Excel) okuma |
-| `02_regex_oznitelik_cikarimi.py` | Regex tabanlı teknik öznitelik çıkarımı (güç, renk sıcaklığı, duy, ışık rengi) |
-| `03_etiketleme_json.py` | Etiketleme ve `etiketli_veri.json` oluşturma, BERTürk tokenizer testi |
+| `02_regex_oznitelik_cikarimi.py` | Regex tabanlı teknik öznitelik çıkarımı |
+| `03_etiketleme_json.py` | Etiketleme ve `etiketli_veri.json` oluşturma |
 | `veri_birlestir.py` | Tüm kaynakların birleştirilmesi ve tekilleştirme |
-| `04_model_egitimi.py` | BERTürk fine-tuning (3 epoch), classification report ve confusion matrix |
+| `04_model_egitimi.py` | BERTürk fine-tuning, classification report, confusion matrix |
 | `kontrol.py` | Kategori-indeks eşleşmesinin kontrolü |
-| `yanlis.py` | Yanlış sınıflandırılan ürünlerin incelenmesi (hata analizi) |
+| `yanlis.py` | Yanlış sınıflandırılan ürünlerin incelenmesi |
 | `api.py` | FastAPI REST servisi (`/predict` endpoint) |
 | `test_api.py` | API test betiği |
 | `rapor.py` | Sonuç raporlama yardımcı betiği |
-| `oku_log.py` | Eğitim log dosyalarının okunması |
 | `etiketli_veri.json` | Tam etiketli veri seti (11.160 ürün, 20 kategori) |
 
 ## Kurulum
@@ -78,28 +92,13 @@ python 04_model_egitimi.py
 ```bash
 uvicorn api:app --reload
 ```
-Ardından:
-```bash
-curl -X POST http://127.0.0.1:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{"urun_adi": "Schneider 40A Kontaktör"}'
-```
-
-## Veri Toplama Hakkında Not
-
-Bu çalışmada yalnızca herkese açık biçimde yayınlanan ürün adı ve kategori bilgisi toplanmıştır; kişisel veri (kullanıcı bilgisi, yorum, vb.) toplanmamıştır. Veri, akademik/araştırma amaçlı kullanım için paylaşılmaktadır.
 
 ## Bilinen Sınırlılıklar
 
-- `scraper3.py` (Trendyol) ve `scraper4.py` (Amazon) verileri **arama sorgusu adına göre**, `scraper2.py` (e-dundar) verisi ise **sitenin kendi kategori taksonomisinden** etiketlenmiştir.
-- Kategoriler arasında ciddi sınıf dengesizliği bulunmaktadır (örn. Halojen Ampul: 1 örnek).
-- `yanlis.py`, modelin resmî test bölünmesini (`random_state=42`) değil, veri setinin sıralı son %20'lik dilimini kullanmaktadır.
-
-Ayrıntılı tartışma için ilgili makaleye bakınız.
+- `scraper3.py` ve `scraper4.py` arama sorgusu adına göre, `scraper2.py` sitenin kendi kategori taksonomisinden etiketlenmiştir.
+- Kategoriler arasında ciddi sınıf dengesizliği bulunmaktadır (Halojen Ampul: 1 örnek).
+- `yanlis.py`, modelin resmî test bölünmesini değil, veri setinin sıralı son %20'sini kullanmaktadır.
 
 ## Atıf
 
-Bu çalışmayı kullanırsanız lütfen ilgili makaleyi/tezi kaynak gösteriniz:
-
-> Yazğan, M. (2026). BERTürk Tabanlı Türkçe Elektrik Ürünlerinin Otomatik Sınıflandırılması: Web Scraping ile Oluşturulan Alan-Özel Veri Seti Üzerinde Deneysel Bir Çalışma. Karadeniz Teknik Üniversitesi, Yazılım Mühendisliği Bölümü, Bitirme Çalışması.
-
+> Yazğan, M. (2026). BERTürk Tabanlı Türkçe Elektrik Ürünlerinin Otomatik Sınıflandırılması. Karadeniz Teknik Üniversitesi, Yazılım Mühendisliği Bölümü, Bitirme Çalışması.
