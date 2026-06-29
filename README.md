@@ -30,11 +30,11 @@ model = AutoModelForSequenceClassification.from_pretrained("KULLANICI_ADI/MODEL_
 | `scraper2.py` | e-dundar.com veri toplama betiği (site taksonomisi tabanlı etiketleme) |
 | `scraper3.py` | trendyol.com veri toplama betiği (arama sorgusu tabanlı etiketleme) |
 | `scraper4.py` | amazon.com.tr veri toplama betiği (arama sorgusu tabanlı etiketleme) |
-| `hafta1.py` | Ham veri (Excel) okuma |
-| `hafta2.py` | Regex tabanlı teknik öznitelik çıkarımı (güç, renk sıcaklığı, duy, ışık rengi) |
-| `hafta3.py` | Etiketleme ve `etiketli_veri.json` oluşturma, BERTürk tokenizer testi |
+| `01_ham_veri_okuma.py` | Ham veri (Excel) okuma |
+| `02_regex_oznitelik_cikarimi.py` | Regex tabanlı teknik öznitelik çıkarımı (güç, renk sıcaklığı, duy, ışık rengi) |
+| `03_etiketleme_json.py` | Etiketleme ve `etiketli_veri.json` oluşturma, BERTürk tokenizer testi |
 | `veri_birlestir.py` | Tüm kaynakların birleştirilmesi ve tekilleştirme |
-| `hafta4.py` | BERTürk fine-tuning (3 epoch), classification report ve confusion matrix |
+| `04_model_egitimi.py` | BERTürk fine-tuning (3 epoch), classification report ve confusion matrix |
 | `kontrol.py` | Kategori-indeks eşleşmesinin kontrolü |
 | `yanlis.py` | Yanlış sınıflandırılan ürünlerin incelenmesi (hata analizi) |
 | `api.py` | FastAPI REST servisi (`/predict` endpoint) |
@@ -63,15 +63,15 @@ python scraper4.py
 
 ### 2. Veri ön işleme
 ```bash
-python hafta1.py
-python hafta2.py
-python hafta3.py
+python 01_ham_veri_okuma.py
+python 02_regex_oznitelik_cikarimi.py
+python 03_etiketleme_json.py
 python veri_birlestir.py
 ```
 
 ### 3. Model eğitimi
 ```bash
-python hafta4.py
+python 04_model_egitimi.py
 ```
 
 ### 4. API servisini başlatma
